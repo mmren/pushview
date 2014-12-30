@@ -111,7 +111,7 @@ public class PushView extends RelativeLayout {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (!isMoving) {
-            if (changed) {
+            //if (changed) {
                 int w = r - l;
                 int h = 0;
                 int mTotalHeight = 0;
@@ -148,7 +148,7 @@ public class PushView extends RelativeLayout {
                 if (DEBUG)
                     Log.v(TAG, "==========onLayout() " + "===mTotalHeight==" + mTotalHeight + "===h===" + h);
             }
-        }
+        //}
 
         if (DEBUG)
             Log.v(TAG, "==========onLayout()  surplus=" + surplus + "   l==" + l + "  t==" + t + "   r==" + r

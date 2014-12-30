@@ -1,0 +1,261 @@
+package com.house365.housebutler.view;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.res.TypedArray;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Transformation;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import com.house365.xinfangbao.R;
+
+/**
+ * 
+ * @author renmingming
+ *
+ */
+public class PushView extends RelativeLayout {
+    private static final boolean DEBUG = false;
+    private static final String TAG = "PushView";
+
+    private final int DEFUAL_SURPLUS = 80;
+    private ImageButton pushBtn;
+    private TextView nodataText;
+    private int surplus = DEFUAL_SURPLUS;
+    private boolean translateType = false;// true 缩起 ， false展开
+    private View pushBtn_layout;
+    private boolean isInit = true;
+    private boolean islayout = true;
+    private int moveh = 0;
+    private int startB = 0;
+    private int startT = 0;
+    private int MaxH = 0;
+    private View contentView;
+    private boolean isMoving = false;
+    private String packUpContent;// 收起所需要显示的内容
+    private MyAnimation ta;
+
+    @SuppressLint("Recycle")
+    public PushView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        pushBtn_layout = View.inflate(context, R.layout.view_push_button, null);
+        pushBtn = (ImageButton) pushBtn_layout.findViewById(R.id.expand_btn);
+        nodataText = (TextView) pushBtn_layout.findViewById(R.id.nodata_text);
+        TypedArray t = getContext().obtainStyledAttributes(attrs, R.styleable.pushview);
+        translateType = t.getBoolean(R.styleable.pushview_translateType, false);
+        final String nodata = t.getString(R.styleable.pushview_nodata);
+        setPackUpContent(nodata);
+        if (translateType) {
+            nodataText.setText(packUpContent);
+        }
+        addView(pushBtn_layout);
+        ta = new MyAnimation();
+        ta.setDuration(600);
+        ta.setInterpolator(new DecelerateInterpolator());
+
+        pushBtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isInit = false;
+                translateType = !translateType;
+                startAnimation(ta);
+            }
+        });
+        ta.setAnimationListener(new AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+                if (DEBUG) Log.v(TAG, "onAnimationStart()");
+                isMoving = false;
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+                if (DEBUG) Log.v(TAG, "onAnimationRepeat()");
+                isMoving = true;
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                if (DEBUG) Log.v(TAG, "onAnimationEnd()");
+                isMoving = false;
+                if (translateType) {
+                    nodataText.setText(packUpContent);
+                    pushBtn.setImageResource(R.drawable.btn_down);
+                } else {
+                    nodataText.setText("");
+                    pushBtn.setImageResource(R.drawable.btn_up);
+                }
+            }
+        });
+    }
+
+    public String getPackUpContent() {
+        return packUpContent;
+    }
+
+    public void setPackUpContent(String packUpContent) {
+        this.packUpContent = packUpContent;
+        if (translateType) {
+            nodataText.setText(packUpContent);
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        if (!isMoving) {
+            if (changed) {
+                int w = r - l;
+                int h = 0;
+                int mTotalHeight = 0;
+                int childCount = getChildCount();
+                for (int i = 0; i < childCount; i++) {
+                    View childView = getChildAt(i);
+                    if (childView != null) {
+                        int measureHeight = childView.getMeasuredHeight();
+                        if (DEBUG) Log.v(TAG, "==========onLayout() childView（" + i + ")： " + measureHeight);
+                        mTotalHeight += measureHeight;
+                    }
+                }
+                View h_v = ((ViewGroup) contentView).getChildAt(0);
+                int wh = h_v.getMeasuredHeight();
+                surplus = wh + pushBtn_layout.getMeasuredHeight();
+                startT = t;
+                MaxH = MaxH > (mTotalHeight + 0) ? MaxH : (mTotalHeight + 0);
+                startB = MaxH + startT;
+                moveh = startB - startT - surplus;
+                ta.setDuration((long) (moveh * 0.6));
+                if (translateType) {
+                    h = surplus;
+                } else {
+                    h = MaxH;
+                }
+                contentView.layout(l, 0, r, h - pushBtn_layout.getMeasuredHeight());
+                pushBtn_layout.layout(l, h - pushBtn_layout.getMeasuredHeight(), r, h);
+                ViewGroup.LayoutParams rl = (ViewGroup.LayoutParams) getLayoutParams();
+                rl.width = w;
+                rl.height = h;
+                setLayoutParams(rl);
+                invalidate();
+                getParent().getParent().requestLayout();
+                if (DEBUG)
+                    Log.v(TAG, "==========onLayout() " + "===mTotalHeight==" + mTotalHeight + "===h===" + h);
+            }
+        }
+
+        if (DEBUG)
+            Log.v(TAG, "==========onLayout()  surplus=" + surplus + "   l==" + l + "  t==" + t + "   r==" + r
+                    + "   b==" + b + "===translateType==" + translateType + "=pushBtn_layout="
+                    + pushBtn_layout.getHeight() + (pushBtn_layout.isShown()));
+
+    }
+
+    class MyAnimation extends Animation {
+        @Override
+        protected void applyTransformation(float interpolatedTime, Transformation t) {
+
+            if (!isInit) {
+                int w = getRight() - getLeft();
+                int h = 0;
+                if (!translateType) {
+                    h = surplus + (int) (moveh * interpolatedTime);
+                    contentView.layout(getLeft(), 0, getRight(), ((ViewGroup) contentView).getChildAt(0)
+                            .getHeight() + (int) (moveh * interpolatedTime));
+                    pushBtn_layout.layout(getLeft(), ((ViewGroup) contentView).getChildAt(0).getHeight()
+                            + (int) (moveh * interpolatedTime), getRight(), surplus
+                            + (int) (moveh * interpolatedTime));
+
+                } else {
+                    h = startB - startT - (int) (moveh * interpolatedTime);
+                    contentView.layout(getLeft(), 0, getRight(), startB - startT - pushBtn_layout.getHeight()
+                            - (int) (moveh * interpolatedTime));
+                    pushBtn_layout.layout(getLeft(), startB - startT - pushBtn_layout.getHeight()
+                            - (int) (moveh * interpolatedTime), getRight(), startB - startT
+                            - (int) (moveh * interpolatedTime));
+                    if (DEBUG)
+                        Log.v(TAG,
+                                "==========applyTransformation surplus="
+                                        + surplus
+                                        + "   l=="
+                                        + getLeft()
+                                        + "  t=="
+                                        + (startB - startT - pushBtn_layout.getHeight() - (int) (moveh * interpolatedTime))
+                                        + "   r==" + getRight() + "   b=="
+                                        + (startB - startT - (int) (moveh * interpolatedTime))
+                                        + "===pushBtn_layout" + pushBtn_layout.getHeight());
+                }
+                ViewGroup.LayoutParams rl = (ViewGroup.LayoutParams) getLayoutParams();
+                rl.width = w;
+                rl.height = h;
+                setLayoutParams(rl);
+            }
+        }
+
+        @Override
+        public void initialize(int width, int height, int parentWidth, int parentHeight) {
+            super.initialize(width, height, parentWidth, parentHeight);
+        }
+
+    }
+
+    @SuppressLint("WrongCall")
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
+        if (islayout) {
+            islayout = false;
+            contentView = getChildAt(1);
+            contentView.setId(1);
+            RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.WRAP_CONTENT);
+            lp.addRule(RelativeLayout.BELOW, 1);
+            pushBtn_layout.setLayoutParams(lp);
+
+        }
+        int expandSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, MeasureSpec.AT_MOST);
+        if (DEBUG) Log.v(TAG, "==========onLayout() " + "===expandSpec==" + expandSpec);
+        super.onMeasure(widthMeasureSpec, expandSpec);
+        // for (int index = 0; index < getChildCount(); index++) {
+        // final View child = getChildAt(index);
+        // child.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+        // }
+        // super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int measureWidth = measureWidth(widthMeasureSpec);
+        int measureHeight = measureHeight(heightMeasureSpec);
+        setMeasuredDimension(measureWidth, measureHeight);
+        // measureChildren(widthMeasureSpec, heightMeasureSpec);
+
+    }
+
+    private int measureWidth(int pWidthMeasureSpec) {
+
+        int widthMode = MeasureSpec.getMode(pWidthMeasureSpec);
+        int widthSize = MeasureSpec.getSize(pWidthMeasureSpec);
+        int result = widthMode;
+        switch (widthMode) {
+        case MeasureSpec.EXACTLY:
+            result = widthSize;
+            break;
+        }
+        return result;
+    }
+
+    private int measureHeight(int pHeightMeasureSpec) {
+        int heightMode = MeasureSpec.getMode(pHeightMeasureSpec);
+        int heightSize = MeasureSpec.getSize(pHeightMeasureSpec);
+        int result = heightMode;
+        switch (heightMode) {
+        case MeasureSpec.EXACTLY:
+            result = heightSize;
+            break;
+        }
+        return result;
+    }
+}

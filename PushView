@@ -3,6 +3,7 @@ package com.house365.housebutler.view;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -11,9 +12,10 @@ import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Transformation;
-import android.widget.ImageButton;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 
 import com.house365.xinfangbao.R;
 
@@ -27,8 +29,8 @@ public class PushView extends RelativeLayout {
     private static final String TAG = "PushView";
 
     private final int DEFUAL_SURPLUS = 80;
-    private ImageButton pushBtn;
-    private TextView nodataText;
+    private Button pushBtn;
+    // private TextView nodataText;
     private int surplus = DEFUAL_SURPLUS;
     private boolean translateType = false;// true 缩起 ， false展开
     private View pushBtn_layout;
@@ -42,19 +44,30 @@ public class PushView extends RelativeLayout {
     private boolean isMoving = false;
     private String packUpContent;// 收起所需要显示的内容
     private MyAnimation ta;
-
+    private boolean pushButtonisShow;
+    int h = 0;
+    private int hideHeigh = 0;
+    int Moving_h = 0;
+    private View divider;
     @SuppressLint("Recycle")
     public PushView(Context context, AttributeSet attrs) {
         super(context, attrs);
         pushBtn_layout = View.inflate(context, R.layout.view_push_button, null);
-        pushBtn = (ImageButton) pushBtn_layout.findViewById(R.id.expand_btn);
-        nodataText = (TextView) pushBtn_layout.findViewById(R.id.nodata_text);
+        pushBtn = (Button) pushBtn_layout.findViewById(R.id.expand_btn);
+        // nodataText = (TextView) pushBtn_layout.findViewById(R.id.nodata_text);
         TypedArray t = getContext().obtainStyledAttributes(attrs, R.styleable.pushview);
         translateType = t.getBoolean(R.styleable.pushview_translateType, false);
+        pushButtonisShow = t.getBoolean(R.styleable.pushview_pushButtonisShow, true);
+        divider = pushBtn_layout.findViewById(R.id.push_divider);
         final String nodata = t.getString(R.styleable.pushview_nodata);
+        hideHeigh = t.getDimensionPixelSize(R.styleable.pushview_hideheigh, 0);
+        setButtonBg_color(t.getColor(R.styleable.pushview_background_color, 0x00000000));
+
         setPackUpContent(nodata);
         if (translateType) {
-            nodataText.setText(packUpContent);
+            pushBtn.setText(packUpContent);
+        } else {
+            pushBtn.setText("");
         }
         addView(pushBtn_layout);
         ta = new MyAnimation();
@@ -64,37 +77,89 @@ public class PushView extends RelativeLayout {
         pushBtn.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                isInit = false;
-                translateType = !translateType;
-                startAnimation(ta);
+                if (ta.getDuration() > 0) {
+                    isInit = false;
+                    translateType = !translateType;
+                    startAnimation(ta);
+                }
             }
         });
         ta.setAnimationListener(new AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
-                if (DEBUG) Log.v(TAG, "onAnimationStart()");
-                isMoving = false;
+                 if (DEBUG)
+                Log.v(TAG, "onAnimationStart()");
+                isMoving = true;
             }
 
             @Override
             public void onAnimationRepeat(Animation animation) {
-                if (DEBUG) Log.v(TAG, "onAnimationRepeat()");
+                 if (DEBUG)
+                Log.v(TAG, "onAnimationRepeat()");
                 isMoving = true;
             }
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                if (DEBUG) Log.v(TAG, "onAnimationEnd()");
+                 if (DEBUG)
+                Log.v(TAG, "onAnimationEnd()");
                 isMoving = false;
                 if (translateType) {
-                    nodataText.setText(packUpContent);
-                    pushBtn.setImageResource(R.drawable.btn_down);
+                    pushBtn.setText(packUpContent);
+                    pushBtn.setCompoundDrawablesWithIntrinsicBounds(null, null, null, getResources()
+                            .getDrawable(R.drawable.btn_down));
                 } else {
-                    nodataText.setText("");
-                    pushBtn.setImageResource(R.drawable.btn_up);
+                    pushBtn.setText("");
+                    pushBtn.setCompoundDrawablesWithIntrinsicBounds(null, null, null, getResources()
+                            .getDrawable(R.drawable.btn_up));
                 }
             }
         });
+        showOrHide();
+    }
+
+    public void setDrivider(Drawable drawable){
+        divider.setBackgroundDrawable(drawable);
+    }
+    
+    public void setDrivider_color(int color){
+        divider.setBackgroundColor(color);
+    }
+    
+    public void setDrivider_High(int high){
+        ViewGroup.LayoutParams lp= divider.getLayoutParams();
+        lp.height = high;
+        divider.setLayoutParams(lp);
+    }
+    
+    public void setButtonBg_color(int color) {
+        pushBtn.setBackgroundColor(color);
+    }
+
+    public void setButtonBg_drawable(Drawable drawable) {
+        pushBtn.setBackgroundDrawable(drawable);
+    }
+
+    public void setHideHeigh(int hideHeigh) {
+        this.hideHeigh = hideHeigh;
+    }
+
+    public void showOrHide() {
+        if (pushButtonisShow) {
+            pushBtn.setVisibility(VISIBLE);
+        } else {
+            pushBtn.setVisibility(GONE);
+            translateType = false;
+        }
+    }
+
+    public boolean isPushButtonisShow() {
+        return pushButtonisShow;
+    }
+
+    public void setPushButtonisShow(boolean pushButtonisShow) {
+        this.pushButtonisShow = pushButtonisShow;
+        showOrHide();
     }
 
     public String getPackUpContent() {
@@ -104,52 +169,80 @@ public class PushView extends RelativeLayout {
     public void setPackUpContent(String packUpContent) {
         this.packUpContent = packUpContent;
         if (translateType) {
-            nodataText.setText(packUpContent);
+            pushBtn.setText(packUpContent);
         }
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if (!isMoving) {
-            //if (changed) {
-                int w = r - l;
-                int h = 0;
-                int mTotalHeight = 0;
-                int childCount = getChildCount();
-                for (int i = 0; i < childCount; i++) {
-                    View childView = getChildAt(i);
-                    if (childView != null) {
-                        int measureHeight = childView.getMeasuredHeight();
-                        if (DEBUG) Log.v(TAG, "==========onLayout() childView（" + i + ")： " + measureHeight);
-                        mTotalHeight += measureHeight;
-                    }
+            int w = r - l;
+            int mTotalHeight = 0;
+            int childCount = getChildCount();
+            for (int i = 0; i < childCount; i++) {
+                View childView = getChildAt(i);
+                if (childView != null) {
+                    int measureHeight = childView.getMeasuredHeight();
+                    if (DEBUG) Log.v(TAG, "==========onLayout() childView（" + i + ")： " + measureHeight);
+                    mTotalHeight += measureHeight;
                 }
-                View h_v = ((ViewGroup) contentView).getChildAt(0);
-                int wh = h_v.getMeasuredHeight();
-                surplus = wh + pushBtn_layout.getMeasuredHeight();
-                startT = t;
-                MaxH = MaxH > (mTotalHeight + 0) ? MaxH : (mTotalHeight + 0);
-                startB = MaxH + startT;
-                moveh = startB - startT - surplus;
-                ta.setDuration((long) (moveh * 0.6));
-                if (translateType) {
-                    h = surplus;
-                } else {
-                    h = MaxH;
-                }
-                contentView.layout(l, 0, r, h - pushBtn_layout.getMeasuredHeight());
-                pushBtn_layout.layout(l, h - pushBtn_layout.getMeasuredHeight(), r, h);
-                ViewGroup.LayoutParams rl = (ViewGroup.LayoutParams) getLayoutParams();
-                rl.width = w;
-                rl.height = h;
-                setLayoutParams(rl);
-                invalidate();
-                getParent().getParent().requestLayout();
-                if (DEBUG)
-                    Log.v(TAG, "==========onLayout() " + "===mTotalHeight==" + mTotalHeight + "===h===" + h);
             }
-        //}
+            View title_view = ((ViewGroup) contentView).getChildAt(0);
+            int cc_h = 0;
+            if (title_view != null) {
+                ViewGroup.LayoutParams h_v_lp = title_view.getLayoutParams();
+                int title_topMargin = 0;
+                int title_bottomMargin = 0;
+                if (h_v_lp instanceof RelativeLayout.LayoutParams) {
+                    RelativeLayout.LayoutParams lp = (LayoutParams) h_v_lp;
+                    title_topMargin = lp.topMargin;
+                    title_bottomMargin = lp.bottomMargin;
+                }
+                if (h_v_lp instanceof LinearLayout.LayoutParams) {
+                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) h_v_lp;
+                    title_topMargin = lp.topMargin;
+                    title_bottomMargin = lp.bottomMargin;
+                }
+                if (h_v_lp instanceof FrameLayout.LayoutParams) {
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) h_v_lp;
+                    title_topMargin = lp.topMargin;
+                    title_bottomMargin = lp.bottomMargin;
+                }
+                cc_h = title_view.getMeasuredHeight() + title_topMargin + title_bottomMargin;
+            }
+            if (DEBUG) Log.v(TAG, "==========hideHeigh==========" + hideHeigh);
+            // if (!translateType) {
+            MaxH = mTotalHeight;
+            // } else {
+            // MaxH = MaxH > (mTotalHeight + 0) ? MaxH : (mTotalHeight + 0);
+            // }
+            if (DEBUG)
+                Log.v(TAG, "==========mTotalHeight==========" + mTotalHeight + "=====MaxH====" + MaxH);
+            surplus = cc_h + hideHeigh + pushBtn_layout.getMeasuredHeight() + contentView.getPaddingTop()
+                    + contentView.getPaddingBottom();
+            startT = t;
 
+            startB = MaxH + startT;
+            moveh = startB - startT - surplus;
+            ta.setDuration((long) (Math.pow(moveh, 1 / 2.0) * 10));
+            if (translateType) {
+                h = surplus > MaxH ? MaxH : surplus;
+            } else {
+                h = MaxH;
+            }
+            contentView.layout(0, 0, r - l, h - pushBtn_layout.getMeasuredHeight());
+            pushBtn_layout.layout(0, h - pushBtn_layout.getMeasuredHeight(), r - l, h);
+            ViewGroup.LayoutParams rl = (ViewGroup.LayoutParams) getLayoutParams();
+            rl.width = w;
+            rl.height = h;
+            setLayoutParams(rl);
+            if (DEBUG) Log.v(TAG, "==========onLayout() moveh====" + moveh);
+            if (DEBUG)
+                Log.v(TAG,
+                        "==========onLayout() " + "===mTotalHeight==" + mTotalHeight + "===h===" + h
+                                + "=======pushBtn_layout.getMeasuredHeight() ======"
+                                + pushBtn_layout.getMeasuredHeight());
+        }
         if (DEBUG)
             Log.v(TAG, "==========onLayout()  surplus=" + surplus + "   l==" + l + "  t==" + t + "   r==" + r
                     + "   b==" + b + "===translateType==" + translateType + "=pushBtn_layout="
@@ -163,22 +256,24 @@ public class PushView extends RelativeLayout {
 
             if (!isInit) {
                 int w = getRight() - getLeft();
-                int h = 0;
+                if (DEBUG) Log.v(TAG, "==========applyTransformation() moveh====" + moveh);
                 if (!translateType) {
-                    h = surplus + (int) (moveh * interpolatedTime);
-                    contentView.layout(getLeft(), 0, getRight(), ((ViewGroup) contentView).getChildAt(0)
-                            .getHeight() + (int) (moveh * interpolatedTime));
-                    pushBtn_layout.layout(getLeft(), ((ViewGroup) contentView).getChildAt(0).getHeight()
-                            + (int) (moveh * interpolatedTime), getRight(), surplus
-                            + (int) (moveh * interpolatedTime));
+                    Moving_h = h + (int) (moveh * interpolatedTime);
+                    View v = ((ViewGroup) contentView).getChildAt(0);
+                    int content_h = (v != null ? v.getHeight() : 0) + hideHeigh
+                            + (int) (moveh * interpolatedTime) + contentView.getPaddingTop()
+                            + contentView.getPaddingBottom();
+                    // Log.v(TAG, "==========applyTransformation() " + "===content_h==" + content_h
+                    // + "===h===" + h);
+                    contentView.layout(0, 0, getRight() - getLeft(), content_h);
+                    pushBtn_layout.layout(0, content_h, getRight() - getLeft(), Moving_h);
 
                 } else {
-                    h = startB - startT - (int) (moveh * interpolatedTime);
-                    contentView.layout(getLeft(), 0, getRight(), startB - startT - pushBtn_layout.getHeight()
-                            - (int) (moveh * interpolatedTime));
-                    pushBtn_layout.layout(getLeft(), startB - startT - pushBtn_layout.getHeight()
-                            - (int) (moveh * interpolatedTime), getRight(), startB - startT
-                            - (int) (moveh * interpolatedTime));
+                    Moving_h = h - (int) (moveh * interpolatedTime);
+                    contentView.layout(0, 0, getRight() - getLeft(),
+                            startB - startT - pushBtn_layout.getHeight() - (int) (moveh * interpolatedTime));
+                    pushBtn_layout.layout(0, startB - startT - pushBtn_layout.getHeight()
+                            - (int) (moveh * interpolatedTime), getRight() - getLeft(), Moving_h);
                     if (DEBUG)
                         Log.v(TAG,
                                 "==========applyTransformation surplus="
@@ -193,7 +288,7 @@ public class PushView extends RelativeLayout {
                 }
                 ViewGroup.LayoutParams rl = (ViewGroup.LayoutParams) getLayoutParams();
                 rl.width = w;
-                rl.height = h;
+                rl.height = Moving_h;
                 setLayoutParams(rl);
             }
         }
@@ -205,10 +300,8 @@ public class PushView extends RelativeLayout {
 
     }
 
-    @SuppressLint("WrongCall")
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-
         if (islayout) {
             islayout = false;
             contentView = getChildAt(1);
@@ -220,18 +313,38 @@ public class PushView extends RelativeLayout {
 
         }
         int expandSpec = MeasureSpec.makeMeasureSpec(Integer.MAX_VALUE >> 2, MeasureSpec.AT_MOST);
-        if (DEBUG) Log.v(TAG, "==========onLayout() " + "===expandSpec==" + expandSpec);
-        super.onMeasure(widthMeasureSpec, expandSpec);
-        // for (int index = 0; index < getChildCount(); index++) {
-        // final View child = getChildAt(index);
-        // child.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
-        // }
-        // super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        // super.onMeasure(widthMeasureSpec, expandSpec);
+        measureChildren(widthMeasureSpec, expandSpec);
+        int sumH = 0;
+        for (int i = 0; i < getChildCount(); ++i) {
+            View child = getChildAt(i);
+            sumH += child.getMeasuredHeight();
+        }
         int measureWidth = measureWidth(widthMeasureSpec);
-        int measureHeight = measureHeight(heightMeasureSpec);
-        setMeasuredDimension(measureWidth, measureHeight);
-        // measureChildren(widthMeasureSpec, heightMeasureSpec);
+        if (translateType) {
+            View v = ((ViewGroup) contentView).getChildAt(0);
+            int sum_h = 0;
+            if (v != null) {
+                sum_h = v.getMeasuredHeight() + hideHeigh + pushBtn_layout.getMeasuredHeight()
+                        + contentView.getPaddingBottom() + contentView.getPaddingTop();
+            } else {
+                sum_h = hideHeigh + pushBtn_layout.getMeasuredHeight() + contentView.getPaddingBottom()
+                        + contentView.getPaddingTop();
+            }
+            if (sum_h < sumH) {
+                sumH = sum_h;
+            }
 
+        }
+        if (!isMoving) {
+            setMeasuredDimension(measureWidth, sumH);
+        } else {
+            setMeasuredDimension(measureWidth, Moving_h);
+        }
+
+        if (DEBUG)
+            Log.v(TAG, "=====measureHeight========" + "==isMoving==" + isMoving + "==sumH==" + sumH
+                    + "===Moving_h====" + Moving_h);
     }
 
     private int measureWidth(int pWidthMeasureSpec) {
@@ -248,14 +361,26 @@ public class PushView extends RelativeLayout {
     }
 
     private int measureHeight(int pHeightMeasureSpec) {
-        int heightMode = MeasureSpec.getMode(pHeightMeasureSpec);
-        int heightSize = MeasureSpec.getSize(pHeightMeasureSpec);
-        int result = heightMode;
-        switch (heightMode) {
-        case MeasureSpec.EXACTLY:
-            result = heightSize;
-            break;
+        if (translateType) {
+            int heightMode = MeasureSpec.getMode(pHeightMeasureSpec);
+            int heightSize = MeasureSpec.getSize(pHeightMeasureSpec);
+            int result = heightMode;
+            switch (heightMode) {
+            case MeasureSpec.EXACTLY:
+                result = heightSize;
+                break;
+            }
+            return result;
+        } else {
+            int hight = 0;
+            int size = getChildCount();
+            for (int i = 0; i < size; ++i) {
+                View child = getChildAt(i);
+                hight += child.getMeasuredHeight();
+            }
+            return hight;
+
         }
-        return result;
+
     }
 }

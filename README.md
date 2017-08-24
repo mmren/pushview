@@ -1,4 +1,4 @@
-myAndroidCode
+可以展开的view
 =============
 
-some code for android
+可以根据子布局内容自动展开和收起的view
